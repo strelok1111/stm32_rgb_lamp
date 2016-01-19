@@ -26,11 +26,9 @@ void init_USART_wifi(void){
 	USART_Cmd(USART1, ENABLE);
 	NVIC_EnableIRQ(USART1_IRQn);
 }
-void send_data_USART_wifi(char* str){
-	char *s;
-	s = str;
-	while(*s){
+void send_data_raw_USART_wifi(char* data,uint32_t length){
+	for(uint32_t i = 0;i < length;i++){
 		while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
-		USART_SendData(USART1, *s++);
+		USART_SendData(USART1, data[i]);
 	}
 }

@@ -1,84 +1,61 @@
 #include "at.h"
 #include <string.h>
 #include <stdint-gcc.h>
-char* end_strings[] = {
-		"",
-		"OK\r\n",
-		"ERROR\r\n",
-		"FAIL\r\n"
-};
 void AT_recive_byte(ATCommand* at,uint8_t byte){
-	if(at->recive_data && at->is_bisy){
-
-		if(!at->end_string_index && at->current_index_char_end_check == 0){
-			for(uint8_t i = 1;i <= 3;i++){
-				if(end_strings[i][0] == byte){
-					at->end_string_index = i;
-					break;
-				}
+	if(at->current_compare && !at->current_compare->is_disabled){
+		if(at->current_compare->compare_string[at->current_compare->compare_index] == byte){
+			at->current_compare->compare_index++;
+		}else{
+			at->current_compare->compare_index = 0;
+			at->current_compare = NULL;
+		}
+	}else{
+		for(uint8_t i = 0;i < at->callbacks_count;i++){
+			if(at->compare_callbacks[i].compare_string[0] == byte && !at->compare_callbacks[i].is_disabled){
+				at->current_compare = &(at->compare_callbacks[i]);
+				at->current_compare->compare_index = 1;
 			}
 		}
-		char *end_string = end_strings[at->end_string_index];
-		if(at->end_string_index){
-			if(end_string[at->current_index_char_end_check] == byte && at->current_index_char_end_check == 0){
-				at->current_index_char_end_check++;
-				at->start_end = 1;
-			}else if(end_string[at->current_index_char_end_check] == byte && at->start_end){
-				at->current_index_char_end_check++;
-			}else if(end_string[at->current_index_char_end_check] != byte && at->start_end){
-				at->current_index_char_end_check = 0;
-				at->start_end = 0;
-				at->end_string_index = 0;
-			}
-		}
-		at->data_buffer[at->data_index++] = byte;
-		if(at->current_index_char_end_check != 0 && at->current_index_char_end_check == strlen(end_string)){
-			at->recive_data = 0;
-			at->sended_command = "";
-			at->data_index = 0;
-			at->current_index_char_end_check = 0;
-			at->current_index_char_check = 0;
-			at->start_end = 0;
-			at->start_echo = 0;
-			AT_parse_command(at);
-			at->end_string_index = 0;
-			memset(at->data_buffer,0,BUFFER_SIZE);
-			at->is_bisy = 0;
-		}
-	}else if(at->is_bisy){
-		if(at->sended_command[at->current_index_char_check] == byte && at->current_index_char_check == 0){
-			at->current_index_char_check++;
-			at->start_echo = 1;
-		}else if(at->sended_command[at->current_index_char_check] == byte && at->start_echo){
-			at->current_index_char_check++;
-		}else if(at->sended_command[at->current_index_char_check] != byte && at->start_echo){
-			at->start_echo = 0;
-			at->current_index_char_check = 0;
-		}
-		if(at->current_index_char_check == strlen(at->sended_command)){
-			at->recive_data = 1;
-			at->start_echo = 0;
+	}
+	if(at->current_compare && at->current_compare->compare_index == strlen(at->current_compare->compare_string)){
+		if(at->current_compare->on_compare_callback){
+			at->current_compare->compare_index = 0;
+			void (*comp)(void*) = at->current_compare->on_compare_callback;
+			void *sender = at->current_compare->sender_pointer;
+			at->current_compare = NULL;
+			comp(sender);
 		}
 	}
 }
 void AT_send_command(ATCommand* at,char* str){
-	if(strlen(at->sended_command))
-		return;
-	at->is_bisy = 1;
-	at->current_index_char_check = 0;
-	at->recive_data = 0;
-	at->start_echo = 0;
-	at->data_index = 0;
-	at->current_index_char_end_check = 0;
-	at->start_end = 0;
-	memset(at->data_buffer,0,BUFFER_SIZE);
-	at->sended_command = str;
-	at->end_string_index = 0;
-	at->send_funct(str);
-	at->send_funct("\r\n");
+	AT_send_raw_data(at,str,strlen(str));
 }
-void AT_parse_command(ATCommand* at){
-	char* buffer[BUFFER_SIZE];
-	memcpy(buffer,at->data_buffer,BUFFER_SIZE);
-
+void AT_send_raw_data(ATCommand* at,char* str,uint32_t length){
+	at->send_raw_funct(str,length);
+}
+void AT_init(ATCommand* at){
+	at->callbacks_count = 0;
+}
+void AT_add_compare_callback(ATCommand* at,char* compare_string,void (*callback)(void*),void *object_pointer){
+	ATResponseCompare new_response_struct;
+	new_response_struct.compare_string = compare_string;
+	new_response_struct.compare_index = 0;
+	new_response_struct.is_disabled = 0;
+	new_response_struct.on_compare_callback = callback;
+	new_response_struct.sender_pointer = object_pointer;
+	at->callbacks_count++;
+	ATResponseCompare *compares = realloc(at->compare_callbacks, sizeof(ATResponseCompare) * at->callbacks_count);
+	if(compares){
+		at->compare_callbacks = compares;
+		at->compare_callbacks[at->callbacks_count - 1] = new_response_struct;
+	}
+}
+void AT_disable_compare(ATCommand* at,ATResponseCompare *compare){
+	if(compare == at->current_compare)
+		at->current_compare = NULL;
+	compare->is_disabled = 1;
+	compare->compare_index = 0;
+}
+void AT_enable_compare(ATResponseCompare *compare){
+	compare->is_disabled = 0;
 }

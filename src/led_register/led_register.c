@@ -57,11 +57,27 @@ void write_data_channel_1(uint8_t data){
 	else
 		GPIOA->BRR = GPIO_Pin_11;
 }
-
 void set_led_color(uint8_t led_index,uint8_t red,uint8_t green,uint8_t blue){
 	color_data[led_index * 3] = red;
 	color_data[led_index * 3 + 1] = green;
 	color_data[led_index * 3 + 2] = blue;
+}
+void set_led_color_rgb(uint8_t led_index,ColourRgb* color){
+	set_led_color(led_index,color -> r,color -> g,color -> b);
+}
+void set_all_led_color_rgb(ColourRgb* color){
+	for(uint8_t i = 0;i < LED_COUNT;i++ ){
+		set_led_color_rgb(i,color);
+	}
+}
+void set_led_color_hsv(uint8_t led_index,ColourHsv* color){
+	ColourRgb col_rgb;
+	colour_set_rgb_from_hsv(&col_rgb,&color);
+	set_led_color_rgb(led_index,&col_rgb);
+}
+
+void set_led_array(char* data){
+	memccpy(color_data,data,0,CHA_COUNT);
 }
 
 void register_timer_tick(void){
