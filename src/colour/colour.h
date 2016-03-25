@@ -20,6 +20,7 @@ typedef struct  {
 extern void set_all_led_color_rgb(ColourRgb *);
 ColourRgb colour_add_with_shift_to_rgb(ColourRgb *,ColourRgb *,double);
 extern ColourRgb colour_get_random_colour();
+extern void colour_append_to_str(ColourRgb *,char *);
 
 
 #endif

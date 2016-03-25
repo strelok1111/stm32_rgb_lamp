@@ -116,7 +116,20 @@ ColourRgb colour_get_random_colour(){
 	res_col.b = random_number(256);
 	return res_col;
 }
-void colour_set_saturation_to_rgb(ColourRgb* colour_rgb){}
+void colour_append_to_str(ColourRgb* colour_rgb,char *buffer){
+	char col_buffer_r[3];
+	itoa(colour_rgb -> r,col_buffer_r,10);
+	char col_buffer_g[3];
+	itoa(colour_rgb -> g,col_buffer_g,10);
+	char col_buffer_b[3];
+	itoa(colour_rgb -> b,col_buffer_b,10);
+	strcat(buffer,col_buffer_r);
+	strcat(buffer,",");
+	strcat(buffer,col_buffer_g);
+	strcat(buffer,",");
+	strcat(buffer,col_buffer_b);
+}
+//void colour_set_saturation_to_rgb(ColourRgb* colour_rgb){}
 //void RGB_string2RGB_struct(char *tuple, struct ColourRgb *RGB){
 // char tmp[3];
 //

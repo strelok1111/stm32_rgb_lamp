@@ -4,6 +4,7 @@
 #include <stdint-gcc.h>
 #define RX_BUFFER_SIZE 300
 #define BUFFER_SIZE 1000
+#define COMPARE_BUFFER 85
 
 
 typedef struct {
@@ -19,6 +20,8 @@ typedef struct {
 	ATResponseCompare *compare_callbacks;
 	ATResponseCompare *current_compare;
 	uint8_t callbacks_count;
+	uint8_t compare_buffer[COMPARE_BUFFER];
+	uint16_t response_index;
 
 } ATCommand;
 

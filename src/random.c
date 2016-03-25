@@ -24,7 +24,7 @@ void random_init(void){
 	 ADC_Cmd(ADC1, ENABLE);
 
 	 // настройка канала
-	 ADC_RegularChannelConfig(ADC1, ADC_Channel_1, 1, ADC_SampleTime_55Cycles5);
+	 ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 1, ADC_SampleTime_55Cycles5);
 
 	 // калибровка АЦП
 	 ADC_ResetCalibration(ADC1);

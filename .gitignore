@@ -1,3 +1,5 @@
 Release
 Debug
 core
+client.rb
+get_last_page.rb

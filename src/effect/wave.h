@@ -2,6 +2,11 @@
 #include "../led_register/led_register.h"
 #ifndef _WAVE
 #define _WAVE
+
+#define WAVE_EFFECT_ID 'W'
+#define WAVE_COMMAND_ADD_WAVE_ID 'A'
+#define WAVE_COMMAND_REMOVE_WAVE_ID 'R'
+#define WAVE_COMMAND_CLEAR_ID 'C'
 typedef enum {CW,CCW} wave_spin;
 typedef struct {
 	wave_spin spin;
@@ -20,5 +25,7 @@ typedef struct {
 } WaveEffect;
 extern void wave_effect_init(WaveEffect *);
 extern void wave_effect_add_wave(WaveEffect *,Wave *);
-extern void wave_effecct_init_wave(Wave*);
+extern void wave_effect_init_wave(Wave*);
+extern void wave_effect_remove_wave(WaveEffect *,uint8_t);
+extern void wave_effect_clear(WaveEffect *);
 #endif

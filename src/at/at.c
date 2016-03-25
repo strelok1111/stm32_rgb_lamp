@@ -9,6 +9,7 @@ void AT_recive_byte(ATCommand* at,uint8_t byte){
 			at->current_compare->compare_index = 0;
 			at->current_compare = NULL;
 		}
+
 	}else{
 		for(uint8_t i = 0;i < at->callbacks_count;i++){
 			if(at->compare_callbacks[i].compare_string[0] == byte && !at->compare_callbacks[i].is_disabled){
@@ -35,6 +36,7 @@ void AT_send_raw_data(ATCommand* at,char* str,uint32_t length){
 }
 void AT_init(ATCommand* at){
 	at->callbacks_count = 0;
+	at->response_index = 0;
 }
 void AT_add_compare_callback(ATCommand* at,char* compare_string,void (*callback)(void*),void *object_pointer){
 	ATResponseCompare new_response_struct;
