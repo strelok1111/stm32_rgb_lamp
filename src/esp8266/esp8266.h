@@ -45,6 +45,8 @@ typedef struct {
 	void (*data_recived)(void *,Esp8266Connect *);
 	void (*on_reset)(void *);
 	void (*on_ok)(void *);
+	void (*on_error)(void *);
+	void (*on_fail)(void *);
 	volatile char* sended_command;
 	char response_buffer[RESPONSE_BUFFER_LENGTH];
 	char resive_header_buffer[RESIVE_HEADER_BUFFER_LENGTH];

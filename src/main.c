@@ -10,8 +10,15 @@
 #include "effect/wave.h"
 #include "effect/color_shift.h"
 #include "effect/heart_beat.h"
+#include "effect/single_color.h"
 #include "random.h"
-#define CONNECT_STRING (__I uint8_t*) 0x8008000
+#define STRING_LENGTH_OFFSET 100
+#define BASE_CONNECT_ADDRESS 0x08010000
+#define CONNECT_HOME_STRING (__I uint8_t*) BASE_CONNECT_ADDRESS
+#define START_SERVER_STRING (__I uint8_t*) (BASE_CONNECT_ADDRESS + STRING_LENGTH_OFFSET)
+#define SET_HOME_IP_STRING (__I uint8_t*) (BASE_CONNECT_ADDRESS + STRING_LENGTH_OFFSET * 2)
+#define CONNECT_MAGNA_STRING (__I uint8_t*) (BASE_CONNECT_ADDRESS + STRING_LENGTH_OFFSET * 3)
+#define SET_MAGNA_IP_STRING (__I uint8_t*) (BASE_CONNECT_ADDRESS + STRING_LENGTH_OFFSET * 4)
 
 
 #pragma GCC diagnostic push
@@ -23,6 +30,8 @@ volatile Esp8266 esp;
 WaveEffect wave_effect;
 ColourShiftEffect color_shift;
 HeartBeatEffect heart_beat;
+SingleColorEffect single_color;
+
 typedef struct {
 	void (*get_frame)(void *);
 } Effect;
@@ -57,7 +66,20 @@ void recived_data_from_esp(Esp8266 *esp,Esp8266Connect* connect){
 	memset(response_buffer,0,RESPONSE_BUFFER_LENGTH_R);
 	uint8_t first_char = connect -> data_buffer[0];
 	uint8_t second_char = connect -> data_buffer[1];
-	if(first_char == WAVE_EFFECT_ID){
+	if(first_char == SINGLE_COLOR_EFFECT_ID){
+		if(current_effect != &single_color){
+			current_effect = (Effect *)(&single_color);
+		}
+		strtok(connect -> data_buffer,",");
+		if(second_char == SINGLE_COLOR_COMMAND_FADE_TO_ID){
+			uint8_t r = atoi(strtok(NULL,","));
+			uint8_t g = atoi(strtok(NULL,","));
+			uint8_t b = atoi(strtok(NULL,","));
+			uint32_t delay = atoi(strtok(NULL,","));
+			single_color_effect_fade_to(&single_color,r,g,b,delay);
+		}
+		strcat(response_buffer,"OK");
+	}else if(first_char == WAVE_EFFECT_ID){
 		if(current_effect != &wave_effect){
 			current_effect = (Effect *)(&wave_effect);
 		}
@@ -193,17 +215,37 @@ void init_main_timer3(void){
 	TIM_Cmd(TIM3, ENABLE);
 
 	NVIC_EnableIRQ(TIM3_IRQn);
-	NVIC_SetPriority(TIM3_IRQn,10);
+	NVIC_SetPriority(TIM3_IRQn,5);
 	TIM_ITConfig(TIM3, TIM_DIER_UIE, ENABLE);
 }
 void set_start_serve_callback(Esp8266 *esp){
-	esp8266_send_command_with_callback(esp,"AT+CIPSERVER=1,3355\r\n",NULL);
+	esp8266_send_command_with_callback(esp,START_SERVER_STRING,NULL);
+}
+
+void set_ap_set_ip_callback(Esp8266 *esp){
+	esp8266_send_command_with_callback(esp,"AT+CIPAP=\"192.168.1.1\"\r\n",set_start_serve_callback);
+}
+void set_ap_dhcp_callback(Esp8266 *esp){
+	esp8266_send_command_with_callback(esp,"AT+CWDHCP=0,0\r\n",set_ap_set_ip_callback);
+}
+void set_ap_config_callback(Esp8266 *esp){
+	esp8266_send_command_with_callback(esp,"AT+CWSAP=\"WifiRgbLamp\",\"wi_fi_lamp\",5,3\r\n",set_ap_dhcp_callback);
+}
+void set_ap_mode_callback(Esp8266 *esp){
+	esp8266_send_command_with_callback(esp,"AT+CWMODE=2\r\n",set_ap_config_callback);
+}
+
+void set_set_home_ip_callback(Esp8266 *esp){
+	esp8266_send_command_with_callback(esp,SET_HOME_IP_STRING,set_start_serve_callback);
 }
 void set_set_ip_callback(Esp8266 *esp){
-	esp8266_send_command_with_callback(esp,"AT+CIPSTA=\"172.16.1.105\"\r\n",set_start_serve_callback);
+	esp8266_send_command_with_callback(esp,SET_MAGNA_IP_STRING,set_start_serve_callback);
+}
+void set_connect_home_wifi_callback(Esp8266 *esp){
+	esp8266_send_command_with_callback(esp,CONNECT_HOME_STRING,set_set_home_ip_callback,set_ap_mode_callback);
 }
 void set_connect_to_wifi_callback(Esp8266 *esp){
-	esp8266_send_command_with_callback(esp,CONNECT_STRING,set_set_ip_callback);
+	esp8266_send_command_with_callback(esp,CONNECT_MAGNA_STRING,set_set_ip_callback,set_connect_home_wifi_callback);
 }
 void set_multiple_connections_callback(Esp8266 *esp){
 	esp8266_send_command_with_callback(esp,"AT+CIPMUX=1\r\n",set_connect_to_wifi_callback);
@@ -219,8 +261,6 @@ void esp_init(void){
 	esp8266_init(&esp);
 }
 
-
-
 int main(int argc, char* argv[]){
 	 registers_gpio_init();
 	 register_init_timer2();
@@ -229,6 +269,7 @@ int main(int argc, char* argv[]){
 	 color_shift_effect_init(&color_shift);
 	 heart_beat_effect_init(&heart_beat);
 	 wave_effect_init(&wave_effect);
+	 single_color_effect_init(&single_color);
 	 //esp8266_send_command(&esp,"AT+CIOBAUD=115200\r\n");
 	 while(1);
 }

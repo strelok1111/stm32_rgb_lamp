@@ -102,7 +102,7 @@ void register_init_timer2(void){
 	TIM_Cmd(TIM2, ENABLE);
 
 	NVIC_EnableIRQ(TIM2_IRQn);
-	NVIC_SetPriority(TIM2_IRQn,5);
+	NVIC_SetPriority(TIM2_IRQn,10);
 	TIM_ITConfig(TIM2, TIM_DIER_UIE, ENABLE);
 }
 

@@ -9,8 +9,11 @@ void esp8266_hard_reset(Esp8266 *esp){
 void esp8266_set_on_ok_callback(Esp8266 *esp,void (*callback)(void*)){
 	esp -> on_ok = callback;
 }
-void esp8266_clear_on_ok_callback(Esp8266 *esp,void (*callback)(void*)){
-	esp -> on_ok = NULL;
+void esp8266_set_on_error_callback(Esp8266 *esp,void (*callback)(void*)){
+	esp -> on_error = callback;
+}
+void esp8266_set_on_fail_callback(Esp8266 *esp,void (*callback)(void*)){
+	esp -> on_fail = callback;
 }
 void esp8266_reset(Esp8266 *esp){
 	esp -> is_ready = 0;
@@ -41,10 +44,14 @@ void esp8266_ok_response_callback(Esp8266 *esp){
 void esp8266_error_response_callback(Esp8266 *esp){
 	esp->response_status = RESPONSE_STATUS_ERROR;
 	esp8266_clear_after_response(esp);
+	if(esp -> on_error)
+		esp -> on_error(esp);
 }
 void esp8266_fail_response_callback(Esp8266 *esp){
 	esp->response_status = RESPONSE_STATUS_FAIL;
 	esp8266_clear_after_response(esp);
+	if(esp -> on_fail)
+		esp -> on_fail(esp);
 }
 void esp8266_start_recive_data_header(Esp8266 *esp){
 	esp->is_ready = 0;
@@ -213,13 +220,15 @@ void esp8266_recive_usart_byte(Esp8266 *esp,uint8_t byte){
 	}
 }
 
-void esp8266_send_command_with_callback(Esp8266 *esp,char* sstr,void(*callback)(void*)){
+void esp8266_send_command_with_callback(Esp8266 *esp,char* sstr,void(*ok_callback)(void*),void(*fail_callback)(void*),void(*error_callback)(void*)){
 	esp8266_enable_callback(esp,CALLBACK_OK_INDEX);
 	esp8266_enable_callback(esp,CALLBACK_ERROR_INDEX);
 	esp8266_enable_callback(esp,CALLBACK_FAIL_INDEX);
 	esp->sended_command = sstr;
 	esp->is_ready = 0;
-	esp8266_set_on_ok_callback(esp,callback);
+	esp8266_set_on_ok_callback(esp,ok_callback);
+	esp8266_set_on_fail_callback(esp,fail_callback);
+	esp8266_set_on_error_callback(esp,error_callback);
 	AT_send_command(&(esp->at),sstr);
 }
 void esp8266_at(Esp8266 *esp){
